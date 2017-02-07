@@ -1,0 +1,90 @@
+\documentclass[11pt,fleqn]{article}
+%\usepackage{CJK}
+\usepackage{latexsym}
+\usepackage{color}
+\usepackage{graphicx, float}\usepackage{graphicx}
+%\usepackage{algorithmicx}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+%\usepackage[colorlinks]{hyperref}
+\setlength{\oddsidemargin}{-0.0in}
+\setlength{\evensidemargin}{-0.0in} \setlength{\textwidth}{6.0in}
+\setlength{\textheight}{9.0in} \setlength{\topmargin}{-0.2in}
+
+%\setlength{\leftmargin}{0.7in}
+\usepackage{amssymb, graphicx, amsmath}  %  fancyheadings,
+\usepackage{setspace}
+\newcommand\qed{\qquad $\square$}
+\newcommand{\nn}{\nonumber}
+
+\def \[{\begin{equation}}
+\def \]{\end{equation}}
+\def\proof{{\bf Proof:\quad}}
+\def \endzm {\quad $\Box$}
+\def\dist{\hbox{dist}}
+
+
+\newcommand{\R}{\mathbb{R}}
+%\newtheorem{yinli}{ТэАн}[section]
+\newcommand{\D}{\displaystyle}
+\newcommand{\T}{\textstyle}
+\newcommand{\SC}{\scriptstyle}
+\newcommand{\FT}{\footnotesize}
+
+
+
+%\newtheorem{theorem}{Theorem}[section]
+%\renewcommand{\thetheorem}{\arabic{section}.\arabic{theorem}}
+\newtheorem{definition}{Definition}
+\renewcommand{\thedefinition}{\arabic{section}.\arabic{definition}}
+\newtheorem{lemma}{Lemma}[section]
+\renewcommand{\thelemma}{\arabic{section}.\arabic{lemma}}
+\newtheorem{remark}{Remark}
+\renewcommand{\theremark}{\arabic{section}.\arabic{remark}}
+\newtheorem{proposition}{Proposition}[section]
+\renewcommand{\theproposition}{\arabic{section}.\arabic{proposition}}
+\newtheorem{corollary}{Corollary }[section]
+\renewcommand{\thecorollary}{\arabic{section}.\arabic{corollary}}
+\renewcommand{\theequation}{\arabic{section}.\arabic{equation}}
+\renewcommand{\baselinestretch}{1.35}
+\newtheorem{exam}{Example}[section]
+\renewcommand{\theexam}{\arabic{section}.\arabic{exam}}
+\newtheorem{theo}{Theorem}[section]
+\renewcommand{\thetheo}{\arabic{section}.\arabic{theo}}
+\begin{document}
+%\begin{CJK*}{GBK}{song}
+
+\begin{center}
+
+{\LARGE \bf  Machine Learning Assignment 2}\\
+
+
+\vskip 25pt
+ {Huihuang Zheng, huihuang@utexas.edu }\\
+\vskip 5pt
+{\small hz4674 Spring 2016 }
+
+\end{center}
+
+\begin{spacing}{1.5}
+\section{Using Code}
+To run my code, open \textbf{src/main.m}, change the \textbf{DATA\_DIR} to where you put your \textbf{icatest.mat} and \textbf{sounds.mat}, then run the \emph{src/main.m} with Matlab. It will output one figure of mixed signals and one figure which put origin signals and estimated signals together. For comparison of origin signals and estimated signals, those signals are listed in $n$ rows and 2 columns, where $n$ is the number of signals. The order may not be correct. But you can find the matched shape.
+
+\section{Algorithm Implementation}
+My algorithm is exactly same as on Canvas assignment page, but I change something about the learning rate. In website page, it suggested that when we deal with the large data set \textbf{sounds.mat}, our program may be slow, then we can set smaller learning step. Let our unmixing matrix in $i$-th iteration be $W_i$. Let the norm of difference of unmixing matrices in two neighbor iteration, which is $norm(W_{i} - W_{i-1})$ be $\Delta$. Let the converge threshold be $H$, then the algorithm stops when $\Delta < H$. In my experiment, I found when we set smaller learning rate, it still converge slow (about ten thousands of iterations if I set $H = 1e^{-10}$).
+\subsection{From disk data file to matrix}
+In file \emph{src/main.m}, I firstly read data from disk file (see \emph{src/readData.m}). Secondly, since the raw data is $28 * 28 * 1$ images and in the training set we have $60000$ images of hand writing digits. Due to the requirement of the assignment that training images should be less then data dimension, we should pick few images for training. I implemented two kinds of data picking (see \emph{src/pickData.m}), one is picking first $k$ data. The other is pick random $k$ data. Then, I convert these $28 * 28 * 1 * k$ 4-d data into $784 * k$ 2-d matrix $A$ (see \emph{src/imageFeature.m}). \\
+\subsection{Get Eigenvectors and Mean Vector}
+(See \emph{src/hw1FindEigendigits.m})Now, since every column of $A$ is a vector representing a image, it's easy to get mean image by just averaging columns. It's also easy to get eigenvalues and eigenvectors by calling Matlab function \emph{eig()}. Suppose $A$ is the matrix after subtracting mean with size $x * k$ where $x$ is the dimension of each data and $k$ is how many training data we picked. Because $k < x$, the formal way of computing eigenvalues and eigenvectors of $AA^T$, whose size is $x * x$, will be slower than computing eigenvalues and eigenvectors of $A^TA$, whose size is $k * k$. And any eigenvector $v$ and corresponding eigenvalue $u$ of $A^TA$, it satisfies that $A^TAv = uv$. Multiply both sides with $A$, we got $AA^T(Av) = u(Av)$, which means the $Av$ and $u$ are eigenvector and eigenvalue of $AA^T$. So in this assignment, I used this way to speed up computing eigenvalues and eigenvectors.
+\subsection{Test}
+After we get the eigenvectors and mean vector, we can predict what digit the test image is. I do prediction in the following way. First, I project both training images and testing images into eigenvector space, which means I pick largest $n$ eigenvectors. Those eigenvectors are in a matrix $V$ of size $x * n$. Suppose test images are reshaped as a matrix $B$ of size $x * k'$, then I subtract every column of $B$ with mean vector. After subtracting mean, let $P_B = B'V$. The $P_B$ is the project of $B$ with each row vector is the project of one testing image. Do same thing to training image and I get project of training data $P_A$. Second, I calculate Euclidean distance between every projected test data point and every projected training data point. For one test data, I predict the image has same digit label as the label of training image with minimum eigenvector-space projected Euclidean distance.
+
+\section{Experiment Result}
+I run experiment from 250 to 600 training data with an increment of 50. Used 10 to 80 eigenvectors with an increment of 10. In this section I will show my experiment result and discuss some results.\\
+
+
+From these images, we can see in the eigenvector space, the image performs in different ways. It seems like blur in images due to add mean back. But we can see some pixels with high intensity and outline the digits.
+\end{spacing}
+
+%\end{CJK*}
+\end{document}
